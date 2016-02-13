@@ -61,6 +61,8 @@ bool HttpContext::parseRequest(Buffer* buf, Timestamp receiveTime)
 {
   bool ok = true;
   bool hasMore = true;
+  int contentReadSize = 0;
+  int contentLength = 0;
   while (hasMore)
   {
     if (state_ == kExpectRequestLine)
@@ -99,8 +101,21 @@ bool HttpContext::parseRequest(Buffer* buf, Timestamp receiveTime)
         {
           // empty line, end of header
           // FIXME:
-          state_ = kGotAll;
-          hasMore = false;
+          // LGZADD:
+          if(request_.method() == HttpRequest::Method::kPost) {
+            state_ = kExpectBody;
+            string v = request_.getHeader("Content-Length");
+            contentLength = atoi(v.c_str());
+            if(v.empty() || contentLength<=0){
+              state_ = kGotAll;
+              hasMore = false;
+            }else{
+              postdata_.reset(new char[contentLength+1]);
+            }
+          }else {
+            state_ = kGotAll;
+            hasMore = false;
+          }
         }
         buf->retrieveUntil(crlf + 2);
       }
@@ -112,6 +127,16 @@ bool HttpContext::parseRequest(Buffer* buf, Timestamp receiveTime)
     else if (state_ == kExpectBody)
     {
       // FIXME:
+      if(buf->readableBytes()>0) {
+        ::memcpy(postdata_.get()+contentReadSize,buf->peek(),buf->readableBytes());
+        contentReadSize += buf->readableBytes();
+      }
+      if(contentReadSize>=contentLength) {
+        hasMore = false;
+        contentReadSize = 0;
+        request_.setQuery(postdata_.get(),postdata_.get()+contentLength);
+      }
+      buf->retrieveAll();
     }
   }
   return ok;

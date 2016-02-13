@@ -34,7 +34,7 @@ class HttpContext : public muduo::copyable
   };
 
   HttpContext()
-    : state_(kExpectRequestLine)
+    : state_(kExpectRequestLine),postdata_(nullptr)
   {
   }
 
@@ -64,6 +64,7 @@ class HttpContext : public muduo::copyable
 
   HttpRequestParseState state_;
   HttpRequest request_;
+  std::unique_ptr<char,[](char* ptr){if(ptr!=nullptr) delete[] ptr;}> postdata_;
 };
 
 }
