@@ -61,8 +61,8 @@ bool HttpContext::parseRequest(Buffer* buf, Timestamp receiveTime)
 {
   bool ok = true;
   bool hasMore = true;
-  int contentReadSize = 0;
-  int contentLength = 0;
+  size_t contentReadSize = 0;
+  size_t contentLength = 0;
   while (hasMore)
   {
     if (state_ == kExpectRequestLine)
@@ -102,7 +102,7 @@ bool HttpContext::parseRequest(Buffer* buf, Timestamp receiveTime)
           // empty line, end of header
           // FIXME:
           // LGZADD:
-          if(request_.method() == HttpRequest::Method::kPost) {
+          if(request_.method() == HttpRequest::kPost) {
             state_ = kExpectBody;
             string v = request_.getHeader("Content-Length");
             contentLength = atoi(v.c_str());
