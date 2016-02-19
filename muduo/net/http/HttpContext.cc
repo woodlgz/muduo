@@ -59,6 +59,9 @@ bool HttpContext::processRequestLine(const char* begin, const char* end)
 // return false if any error
 bool HttpContext::parseRequest(Buffer* buf, Timestamp receiveTime)
 {
+  if(requestParser_){
+    return requestParser_(buf,receiveTime);
+  }
   bool ok = true;
   bool hasMore = true;
   size_t contentReadSize = 0;
@@ -135,8 +138,9 @@ bool HttpContext::parseRequest(Buffer* buf, Timestamp receiveTime)
         hasMore = false;
         contentReadSize = 0;
         request_.setQuery(postdata_.get(),postdata_.get()+contentLength);
+        state_ = kGotAll;
       }
-      buf->retrieveAll();
+      buf->retrieveUntil(buf->peek()+buf->readableBytes());
     }
   }
   return ok;

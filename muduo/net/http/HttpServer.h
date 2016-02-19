@@ -13,6 +13,7 @@
 
 #include <muduo/net/TcpServer.h>
 #include <boost/noncopyable.hpp>
+#include <muduo/net/http/HttpContext.h>
 
 namespace muduo
 {
