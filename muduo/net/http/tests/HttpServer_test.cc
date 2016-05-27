@@ -52,6 +52,9 @@ void onRequest(const HttpRequest& req, HttpResponse* resp)
     resp->setContentType("text/plain");
     resp->addHeader("Server", "Muduo");
     resp->setBody("hello, world!\n");
+  }else if (req.path() == "/jt.html"){
+    resp->setStatusCode(HttpResponse::k200Ok);
+    resp->setCloseConnection(true);
   }
   else
   {

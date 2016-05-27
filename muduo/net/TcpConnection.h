@@ -118,6 +118,8 @@ class TcpConnection : boost::noncopyable,
     return lastReceiveTime;
   }
 
+    int getFd();
+
  private:
   enum StateE { kDisconnected, kConnecting, kConnected, kDisconnecting };
   void handleRead(Timestamp receiveTime);
@@ -134,6 +136,7 @@ class TcpConnection : boost::noncopyable,
   const char* stateToString() const;
   void startReadInLoop();
   void stopReadInLoop();
+
 
   EventLoop* loop_;
   const string name_;

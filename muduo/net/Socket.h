@@ -41,7 +41,7 @@ class Socket : boost::noncopyable
   // Socket(Socket&&) // move constructor in C++11
   ~Socket();
 
-  int fd() const { return sockfd_; }
+  int fd() const  { return sockfd_; }
   // return true if success.
   bool getTcpInfo(struct tcp_info*) const;
   bool getTcpInfoString(char* buf, int len) const;

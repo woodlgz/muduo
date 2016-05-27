@@ -42,14 +42,6 @@ TcpServer::~TcpServer()
 {
   loop_->assertInLoopThread();
   LOG_TRACE << "TcpServer::~TcpServer [" << name_ << "] destructing";
-#ifdef USE_TBB_HASHMAP
-  for(ConcurrentConnMap::iterator iter = connMap_.begin();iter !=connMap_.end();iter++){
-    TcpConnectionPtr conn = iter->second;
-    iter->second.reset();
-    conn->getLoop()->runInLoop(boost::bind(&TcpConnection::connectDestroyed, conn));
-    conn.reset();
-  }
-#else
   for (ConnectionMap::iterator it(connections_.begin());
       it != connections_.end(); ++it)
   {
@@ -59,7 +51,6 @@ TcpServer::~TcpServer()
       boost::bind(&TcpConnection::connectDestroyed, conn));
     conn.reset();
   }
-#endif
 }
 
 void TcpServer::setThreadNum(int numThreads)
@@ -91,7 +82,8 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
 
   LOG_INFO << "TcpServer::newConnection [" << name_
            << "] - new connection [" << connName
-           << "] from " << peerAddr.toIpPort();
+           << "] from " << peerAddr.toIpPort()
+           << " fd:"<<sockfd;
   InetAddress localAddr(sockets::getLocalAddr(sockfd));
   // FIXME poll with zero timeout to double confirm the new connection
   // FIXME use make_shared if necessary
@@ -100,16 +92,7 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
                                           sockfd,
                                           localAddr,
                                           peerAddr));
-#ifdef USE_TBB_HASHMAP
-  {
-    ConcurrentMapAccessor acc;
-    connMap_.insert(acc,connName);
-    acc->second = conn;
-    acc.release();
-  }
-#else
   connections_[connName] = conn;
-#endif
   conn->setConnectionCallback(connectionCallback_);
   conn->setMessageCallback(messageCallback_);
   conn->setWriteCompleteCallback(writeCompleteCallback_);
@@ -128,19 +111,11 @@ void TcpServer::removeConnectionInLoop(const TcpConnectionPtr& conn)
 {
   loop_->assertInLoopThread();
   LOG_INFO << "TcpServer::removeConnectionInLoop [" << name_
-           << "] - connection " << conn->name();
-#ifdef USE_TBB_HASHMAP
-  ConcurrentMapAccessor acc;
-  if(connMap_.find(acc,conn->name())){
-    connMap_.erase(acc);
-    acc.release();
-  } else
-    LOG_INFO << "TcpServer::removeConnectionInLoop remove failed,key not found,connection:" << conn->name();
-#else
+           << "] - connection " << conn->name()
+           << " fd:" << conn->getFd();
   size_t n = connections_.erase(conn->name());
   (void)n;
   assert(n == 1);
-#endif
   EventLoop* ioLoop = conn->getLoop();
   ioLoop->queueInLoop(
           boost::bind(&TcpConnection::connectDestroyed, conn));

@@ -66,6 +66,10 @@ TcpConnection::TcpConnection(EventLoop* loop,
   socket_->setKeepAlive(true);
 }
 
+int TcpConnection::getFd() {
+  return channel_->fd();
+}
+
 TcpConnection::~TcpConnection()
 {
   LOG_DEBUG << "TcpConnection::dtor[" <<  name_ << "] at " << this
@@ -410,7 +414,7 @@ void TcpConnection::handleWrite()
 void TcpConnection::handleClose()
 {
   loop_->assertInLoopThread();
-  LOG_TRACE << "fd = " << channel_->fd() << " state = " << stateToString();
+  LOG_TRACE << "TcpConnection::handleClose, fd = " << channel_->fd() << " state = " << stateToString();
   assert(state_ == kConnected || state_ == kDisconnecting);
   // we don't close fd, leave it to dtor, so we can find leaks easily.
   setState(kDisconnected);
@@ -428,4 +432,3 @@ void TcpConnection::handleError()
   LOG_ERROR << "TcpConnection::handleError [" << name_
             << "] - SO_ERROR = " << err << " " << strerror_tl(err);
 }
-

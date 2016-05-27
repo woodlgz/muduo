@@ -59,9 +59,10 @@ bool HttpContext::processRequestLine(const char* begin, const char* end)
 // return false if any error
 bool HttpContext::parseRequest(Buffer* buf, Timestamp receiveTime)
 {
-  if(requestParser_){
-    return requestParser_(buf,receiveTime);
-  }
+  lastActiveTime = receiveTime.microSecondsSinceEpoch();
+//  if(requestParser_){
+//    return requestParser_(buf,receiveTime);
+//  }
   bool ok = true;
   bool hasMore = true;
   size_t contentReadSize = 0;
@@ -113,7 +114,8 @@ bool HttpContext::parseRequest(Buffer* buf, Timestamp receiveTime)
               state_ = kGotAll;
               hasMore = false;
             }else{
-              postdata_.reset(new char[contentLength+1]);
+              Buffer tmp(contentLength+1);
+              postBuffer.swap(tmp);
             }
           }else {
             state_ = kGotAll;
@@ -131,13 +133,14 @@ bool HttpContext::parseRequest(Buffer* buf, Timestamp receiveTime)
     {
       // FIXME:
       if(buf->readableBytes()>0) {
-        ::memcpy(postdata_.get()+contentReadSize,buf->peek(),buf->readableBytes());
+        postBuffer.append(buf->peek(),buf->readableBytes());
         contentReadSize += buf->readableBytes();
       }
       if(contentReadSize>=contentLength) {
         hasMore = false;
         contentReadSize = 0;
-        request_.setQuery(postdata_.get(),postdata_.get()+contentLength);
+        string postData = postBuffer.retrieveAllAsString();
+        request_.setQuery(postData.data(),postData.data()+postData.length());
         state_ = kGotAll;
       }
       buf->retrieveUntil(buf->peek()+buf->readableBytes());

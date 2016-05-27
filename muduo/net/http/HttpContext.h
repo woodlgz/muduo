@@ -14,9 +14,10 @@
 #include <muduo/base/copyable.h>
 
 #include <muduo/net/http/HttpRequest.h>
-
+#include <muduo/net/Buffer.h>
 #include <boost/shared_array.hpp>
 #include <boost/function.hpp>
+
 
 namespace muduo
 {
@@ -39,7 +40,7 @@ class HttpContext : public muduo::copyable
   };
 
   HttpContext()
-    : state_(kExpectRequestLine),postdata_()
+    : state_(kExpectRequestLine),lastActiveTime(0)
   {
   }
 
@@ -57,6 +58,8 @@ class HttpContext : public muduo::copyable
     state_ = kExpectRequestLine;
     HttpRequest dummy;
     request_.swap(dummy);
+    Buffer dummyBuffer;
+    postBuffer.swap(dummyBuffer);
   }
 
   const HttpRequest& request() const
@@ -65,25 +68,35 @@ class HttpContext : public muduo::copyable
   HttpRequest& request()
   { return request_; }
 
-  void setRequestParser(const RequestParser& parser){
-    requestParser_ = parser;
-  }
-  const RequestParser& getRequestParser() const{
-    return requestParser_;
-  }
+//  void setRequestParser(const RequestParser& parser){
+//    requestParser_ = parser;
+//  }
+//  const RequestParser& getRequestParser() const{
+//    return requestParser_;
+//  }
   HttpRequestParseState& getState(){
     return state_;
   }
-  boost::shared_array<char>& getPostData(){
-    return postdata_;
-  }
+
+    Buffer& getPostBuffer(){
+      return postBuffer;
+    }
 
   bool processRequestLine(const char* begin, const char* end);
+
+    void setLastActiveTime(long t){
+      lastActiveTime = t;
+    }
+
+  long getLastActiveTime() const{
+    return lastActiveTime;
+  }
 private:
   HttpRequestParseState state_;
   HttpRequest request_;
-  boost::shared_array<char> postdata_; // 如果希望深拷贝,这里将出现问题;也就是多个处理线程间不应该共享HttpContext,如果要支持,设置成线程局部变量
-  RequestParser requestParser_;
+  Buffer postBuffer;
+//  RequestParser requestParser_;
+    long lastActiveTime;
 };
 
 }
